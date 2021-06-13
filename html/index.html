@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js"></script> -->
+
+    <!-- Bootstrap CSS -->
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://unpkg.com/bootstrap-table@1.18.3/dist/bootstrap-table.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" />
+
+
+
+    <!-- Option 1: Bootstrap Bundle with Popper -->
+    <script src="https://code.jquery.com/jquery-3.3.1.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.12.9/umd/popper.min.js" integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q" crossorigin="anonymous"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/js/bootstrap.min.js" integrity="sha384-JZR6Spejh4U02d8jOt6vLEHfe/JQGiRRSQQxSfFWpi1MquVdAyjUar5+76PVCmYl" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/bootstrap-table@1.18.3/dist/bootstrap-table.min.js"></script>
+
+    <!--<script src="https://unpkg.com/gijgo@1.9.13/js/gijgo.min.js" type="text/javascript"></script>
+    <link href="https://unpkg.com/gijgo@1.9.13/css/gijgo.min.css" rel="stylesheet" type="text/css" /> -->
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
+
+
+
+
+
+
+
+
+    <title>Person Detections</title>
+  </head>
+<!---
+<script>
+ $.getJSON( "http://localhost:8000", function( data ) {
+  //console.log( data.name ); // John
+  console.log( data ); // 2pm
+
+  $('#table').bootstrapTable({
+        data: data
+    });
+});
+   http://68.183.212.72:8000/filtertime
+</script>
+--> 
+
+<script>
+  function getData(lowertimestamp, uppertimestamp)
+  {
+    
+    $.ajax( "http://68.183.212.72:8000/filtertime", {
+    data : JSON.stringify({ lower:lowertimestamp,
+    upper: uppertimestamp}),
+    contentType: "application/json; charset=utf-8",
+    dataType   : "json",
+    type : 'POST',
+    success: function(result) {
+      //console.log( data.name ); // John
+        //console.log( data ); // 2pm
+      //console.log(result)
+      $('#table').bootstrapTable('load',result)
+    }
+
+  });
+  }
+
+</script>
+
+<script>
+
+      function isNumberKey(evt)
+			{
+				var charCode = (evt.which) ? evt.which : evt.keyCode;
+				if (charCode != 46 && charCode > 31 
+				&& (charCode < 48 || charCode > 57))
+				return false;
+				return true;
+			}  
+
+</script>
+
+
+
+<script>
+  function callAPI(){
+    
+          var dateText = $('#my_hidden_input').val($('#datepicker').datepicker('getFormattedDate'));
+          console.log(dateText[0].value)
+          //console.log(dateText.target.value);
+          var data = dateText[0].value;
+
+          $('#datepicker').datepicker('update', data);
+
+          console.log(data);
+
+          data = data.replaceAll('/','-');
+          data += 'T'
+          lower = data + document.getElementById("start-time").value+':00';
+          upper = data + document.getElementById("end-time").value+':00';
+          
+          console.log('lower: ',lower);
+          console.log('upper: ',upper);
+          
+          lowertime = Date.parse(lower)
+          uppertime = Date.parse(upper)//lowertime+86400000
+
+          var lowertimeint = parseInt(lowertime);
+          var uppertimeint = parseInt(uppertime);
+
+          
+          // Get the timezone offset for sending the correct datetime values to API
+          var date = new Date();
+          var offset = date.getTimezoneOffset();
+
+          console.log('offset: ',offset);
+          console.log('offset: ',lowertimeint);
+
+          lowertimeint -= offset*60*1000
+          uppertimeint -= offset*60*1000
+
+          console.log('offset: ',lowertimeint);
+          
+          getData(lowertimeint,uppertimeint);
+          console.log(Date.parse(lower));
+
+          
+        }
+
+    
+  
+</script>
+
+<script>
+
+  $(document).ready(function() {
+    console.log('hello')
+      $('#table').bootstrapTable(
+        {
+          "pagination":true
+        });
+  
+      lowertime = Date.now();
+      uppertime = lowertime+86400000
+  
+      var lowertimeint = parseInt(lowertime);
+      var uppertimeint = parseInt(uppertime);
+  
+  
+      getData(lowertimeint,uppertimeint);
+      
+      var start_time = document.getElementById('start-time');
+      start_time.addEventListener('change', function()
+      {
+        var node = this; // Allows us to access 'this' within the timeout function
+			  setTimeout(function() {
+				  callAPI();}, 1000);
+      });
+
+
+      var end_time = document.getElementById('end-time');
+      end_time.addEventListener('change', function()
+      {
+        var node = this; // Allows us to access 'this' within the timeout function
+			  setTimeout(function() {callAPI();}, 1000);
+      });
+            
+  
+    } );
+  
+  
+  </script>
+
+<script>
+
+  function imageFormatter(value, row) {
+    var src= 'data:image/jpeg;base64,'+value
+    //console.log(src)
+    return '<img src="'+src+'" , width=500/>';
+  }
+</script>
+
+  <body>
+    <h1 class="text-center">Person Detections</h1>
+    
+    <div class="row justify-content-center">
+    <div class="d-flex justify-content-center">
+      
+          <div id="datepicker" ></div>
+          <input type="hidden" id="my_hidden_input"> </div>  
+          <script>
+                var date = new Date();
+
+                var today = new Date(date.getTime() - (date.getTimezoneOffset() * 60000 ))
+                          .toISOString()
+                          .split("T")[0];
+                          
+                          
+               // $('#datepicker').datepicker("setDate", new Date());
+                $('#datepicker').datepicker({format: 'yyyy-mm-dd',
+                    value: Date(), todayHighlight: true}).on('changeDate', callAPI);
+                //$('#datepicker').datepicker("setDate", new Date());
+                
+          </script>
+
+    </div>
+  </div>
+
+  <div class="row justify-content-center m-3">
+    <div class="column">
+      <label for="appt">Select start time:</label>
+      <input type="time" id="start-time" name="appt" value="00:00">
+    </div>
+    <div class="column offset-1">
+      <label for="appt2">Select end time:</label>
+      <input type="time" id="end-time" name="appt2" value="23:59">
+    </div>
+   </div>
+
+
+     
+
+    <div class="container">
+      <table id="table" data-height="460" data-url=''>
+      <thead>
+          <tr>
+              <th data-field="tracking_id">Tracking ID</th>
+              <th data-field="timestamp">Date</th>
+              <th data-field="image" data-formatter="imageFormatter">Image</th>
+
+          </tr>
+      </thead>
+  </table>
+  </div>
+
+
+  </body>
+</html>
