@@ -9,7 +9,7 @@ import torch
 import datetime
 
 
-sys.path.append('../sort')
+sys.path.append('./sort')
 print(sys.path)
 from sort import *
 #import torch
@@ -87,7 +87,7 @@ if not os.path.exists(pictures_path):
 def initialize_mongo_client():
 
     try:
-        mongo_client =  MongoClient('127.0.0.1',27017,connect=True)
+        mongo_client =  MongoClient('mongo',27017,connect=True)
         db = mongo_client.get_database('people_project')
         fs = gridfs.GridFS(db)
 
@@ -322,15 +322,16 @@ while True:
                 person_counter = 0
         '''
     track_people(trackers,frame.copy())
-    frame = visualize_detections(frame,person_boxes)
+    #frame = visualize_detections(frame,person_boxes)
     # Show output window
-    cv2.imshow("Output Frame", frame)
-
+    #cv2.imshow("Output Frame", frame)
+    '''
     key = cv2.waitKey(1) & 0xFF
     # check for 'q' key-press
     if key == ord("q"):
         #if 'q' key-pressed break out
         break
+    '''
 
-cv2.destroyAllWindows()
+#cv2.destroyAllWindows()
 # close output window
