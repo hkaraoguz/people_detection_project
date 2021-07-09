@@ -1,0 +1,61 @@
+version: "3.3"
+services:
+
+  api:
+    image: person_detection_api
+    environment: 
+        PORT: 8000
+    ports:
+      - "8000:8000"
+    networks:
+      person_detection_net:
+        ipv4_address: 172.16.238.2
+    build:
+        context: ./api
+        dockerfile: Dockerfile   
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+  
+  db:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017"
+    networks:
+      person_detection_net:
+        ipv4_address: 172.16.238.3
+    volumes:
+    - "~/mongo/data:/data/db"
+  
+  frontend:
+    image: person_detection_html
+    ports:
+        - "8080:80"
+    networks:
+        person_detection_net:
+            ipv4_address: 172.16.238.4
+    build:
+        context: ./html
+        dockerfile: Dockerfile
+    deploy:
+        replicas: 1
+        update_config:
+            parallelism: 2
+            delay: 10s
+        restart_policy:
+            condition: on-failure
+
+
+networks:
+    person_detection_net:
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.16.238.0/24
+                - subnet: "2001:3984:3989::/64"
+                  

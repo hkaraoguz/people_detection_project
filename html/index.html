@@ -55,7 +55,7 @@
   function getData(lowertimestamp, uppertimestamp)
   {
     
-    $.ajax( "http://172.19.0.4:8000/filtertime", {
+    $.ajax( "http://127.0.0.1:8000/filtertime", {
     data : JSON.stringify({ lower:lowertimestamp,
     upper: uppertimestamp}),
     contentType: "application/json; charset=utf-8",
