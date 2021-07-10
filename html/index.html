@@ -29,12 +29,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js"></script>
 
 
-
-
-
-
-
-
     <title>Person Detections</title>
   </head>
 <!---
@@ -116,14 +110,14 @@
 
           
           // Get the timezone offset for sending the correct datetime values to API
-          var date = new Date();
+         /* var date = new Date();
           var offset = date.getTimezoneOffset();
 
           console.log('offset: ',offset);
           console.log('offset: ',lowertimeint);
 
           lowertimeint -= offset*60*1000
-          uppertimeint -= offset*60*1000
+          uppertimeint -= offset*60*1000*/
 
           console.log('offset: ',lowertimeint);
           
@@ -184,6 +178,12 @@
     //console.log(src)
     return '<img src="'+src+'" , width=500/>';
   }
+
+  function dateFormatter(value, row) {
+    console.log('values is ',value);
+   
+    return value;
+  }
 </script>
 
   <body>
@@ -231,7 +231,8 @@
       <thead>
           <tr>
               <th data-field="tracking_id">Tracking ID</th>
-              <th data-field="timestamp">Date</th>
+              <!--<th data-field="timestamp">Date</th> -->
+              <th data-field="timestamp" data-formatter="dateFormatter">Date</th> 
               <th data-field="image" data-formatter="imageFormatter">Image</th>
 
           </tr>

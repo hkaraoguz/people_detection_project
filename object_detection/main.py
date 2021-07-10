@@ -57,7 +57,7 @@ COCO_INSTANCE_CATEGORY_NAMES = ['__background__', 'person', 'bicycle', 'car', 'm
 
 print(len(COCO_INSTANCE_CATEGORY_NAMES))
 
-url = 'http://73.13.148.126:8082/mjpg/video.mjpg'#'http://72.43.190.171:81/mjpg/video.mjpg'
+url = 'http://5.2.202.59:8084/axis-cgi/mjpg/video.cgi?camera=&resolution=640x480'#'http://73.13.148.126:8082/mjpg/video.mjpg'#'http://72.43.190.171:81/mjpg/video.mjpg'
 
 #'http://184.153.62.129:82/mjpg/video.mjpg' #'http://189.174.160.218:6001/mjpg/video.mjpg'
 #'http://180.44.188.214:3000/mjpg/video.mjpg'#'http://67.250.253.16:8081/mjpg/video.mjpg' #'http://82.58.15.68:83/mjpg/video.mjpg' #http://122.58.10.67:83/mjpg/video.mjpg
@@ -66,6 +66,9 @@ url = 'http://73.13.148.126:8082/mjpg/video.mjpg'#'http://72.43.190.171:81/mjpg/
 
 color = (255, 0, 0)
 thickness = 2
+
+# Transform the image to tensor
+tran = torchvision.transforms.ToTensor()
 
 frames = []
 start_time = None
@@ -116,11 +119,7 @@ def get_people_tracks(tracker, dets):
     trackers = tracker.update(dets)
 
     return trackers
-    #print(trackers)
-
-    for track in trackers:
-        print('track: ',track)
-        #print(track)
+   
 
 
 def get_detections(frame, model):
@@ -129,8 +128,7 @@ def get_detections(frame, model):
 
     process_frame = cv2.cvtColor(process_frame, cv2.COLOR_BGR2RGB )
 
-    # Transform the image to tensor
-    tran = torchvision.transforms.ToTensor()
+   
 
 
     # Process the image
@@ -173,6 +171,7 @@ def track_people(trackers, frame):
     for person_id in ids:
         float_id = person_id
         person_id = int(person_id)
+        
         if not people_track_start_dict.get(person_id):
             
             indices = np.where(trackers[:,4] == float_id)[0]
@@ -194,15 +193,23 @@ def track_people(trackers, frame):
             indices = np.where(trackers[:,4] == float_id)[0]
             person_box = None
 
+            # If we get tracks for an id
             if indices.size >0:
+                # retrieve the latest person bounding box
                 person_box = trackers[indices[-1],:4].astype(int).tolist()
+                # append it to the boxes
                 person.boxes.append(person_box)
+
+                # Draw the box to the frame
                 new_frame = visualize_detections(frame.copy(),[person_box])
+
+                # Append it to the object
                 person.frames.append(new_frame)
             
             people_dict[person_id] = person
 
     del_indexes = []
+    
     for key, value in people_track_start_dict.items():
         if time.time() - value >= MAX_TIME:
                 person = people_dict[key]
@@ -218,15 +225,6 @@ def track_people(trackers, frame):
                     imageID = grid_fs.put(imageString, encoding='utf-8')
                     
 
-                    '''
-                    folder_path = os.path.join(pictures_path, datetime.datetime.now().strftime('%Y-%m-%d_%H-%M-%S'),str(person.tracking_id))
-                    if not os.path.exists(folder_path):
-                        os.makedirs(folder_path)
-                    for i in range(3):
-                        filename = str(i)+'.jpg'
-                        filename=os.path.join(folder_path,filename)
-                        cv2.imwrite(filename,person.frames[i])
-                    '''
                     mongo_dict =  vars(person)
 
                     mongo_dict['image_id'] = imageID
@@ -257,10 +255,10 @@ mongo_db,grid_fs  = initialize_mongo_client()
 
 
 if mongo_db == None:
+    print('Mongodb cannot be initialized')
     sys.exit(-1)
 
-
-
+trackers = []
 stream = cv2.VideoCapture(url)
 
 # infinite loop
@@ -278,15 +276,7 @@ while True:
     boxes, scores, label_indexes = get_detections(frame,model)
 
     person_boxes = []
-    trackers = []
-
-    if np.all(boxes) == 0:
-        get_people_tracks(mot_tracker, np.empty((0,5)))
-        track_people(trackers,frame.copy())
-        continue
-
-    #print(predictions[0]['boxes'].detach().numpy())
-
+    
     for index, box in enumerate(boxes):
 
         score = scores[index]
@@ -312,15 +302,9 @@ while True:
         #print(person_boxes)
         trackers = get_people_tracks(mot_tracker, np.asarray(person_boxes))
 
-        '''
-        if frames:
-            if(time.time()-start_time > MAX_TIME):
-                print(float(person_counter)/frame_counter)
-                print(len(frames))
-                frames = []
-                frame_counter = 0
-                person_counter = 0
-        '''
+    else:
+        trackers =get_people_tracks(mot_tracker, np.empty((0,5)))
+    
     track_people(trackers,frame.copy())
     #frame = visualize_detections(frame,person_boxes)
     # Show output window

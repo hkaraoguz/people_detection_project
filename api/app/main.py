@@ -16,6 +16,7 @@ import numpy as np
 
 import cv2
 import gridfs
+import pytz
 
 
 class Settings(BaseSettings):
@@ -88,7 +89,9 @@ async def root():
         # convert bytes to ndarray
         img = np.frombuffer(gOut.read(), dtype=np.uint8)
 
-        img = np.reshape(img, np.array([ 480, 704, 3 ]))
+        shape = item['image_shape']
+
+        img = np.reshape(img, np.array([ shape[0], shape[1], 3 ]))
 
         retval, buffer = cv2.imencode('.jpg', img)
         jpg_as_text = base64.b64encode(buffer)
@@ -112,16 +115,18 @@ async def filtertime(timefilter: TimeFilter):
         # convert bytes to ndarray
         img = np.frombuffer(gOut.read(), dtype=np.uint8)
 
-        img = np.reshape(img, np.array([ 480, 704, 3 ]))
+        shape = item['image_shape']
+
+        img = np.reshape(img, np.array([ shape[0], shape[1], 3 ]))
 
         retval, buffer = cv2.imencode('.jpg', img)
         jpg_as_text = base64.b64encode(buffer)
 
         #jpg_as_text = base64.b64encode(img)
-
-        # reshape to match the image size
-        #
-        time = datetime.datetime.fromtimestamp(int(item['first_timestamp'])).strftime(format="%Y-%m-%d %H:%M:%S")
+        
+        # Localize the timezone to Stockholm'
+        tz = pytz.timezone('Europe/Stockholm')
+        time = pytz.utc.localize(datetime.datetime.fromtimestamp(int(item['first_timestamp']))).astimezone(tz).strftime(format="%Y-%m-%d %H:%M:%S")
         return_dict.append({'tracking_id':item['tracking_id'],'timestamp':time,'image':jpg_as_text})
     return return_dict#{"message": "Hello World"}
 

@@ -1,0 +1,38 @@
+version: "3.3"
+services:
+
+  object_detection:
+    image: person_detector
+    networks:
+      person_detection_net:
+        ipv4_address: 172.16.238.5
+    build:
+        context: ./object_detection
+        dockerfile: Dockerfile   
+    deploy:
+      replicas: 1
+      update_config:
+        parallelism: 2
+        delay: 10s
+      restart_policy:
+        condition: on-failure
+  
+  db:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017"
+    networks:
+      person_detection_net:
+        ipv4_address: 172.16.238.3
+    volumes:
+    - "~/mongo/data:/data/db"
+  
+networks:
+    person_detection_net:
+        ipam:
+            driver: default
+            config:
+                - subnet: 172.16.238.0/24
+                - subnet: "2001:3984:3989::/64"
+                  
