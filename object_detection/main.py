@@ -31,6 +31,9 @@ class Person(object):
 # torchvision.models.detection.fasterrcnn_mobilenet_v3_large_320_fpn(pretrained=True)
 # torchvision.models.detection.retinanet_resnet50_fpn(pretrained=True)
 #model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=True, min_size=400, max_size=600)
+
+print('cuda available: ', torch.cuda.is_available())
+
 model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=True)
 
 
@@ -55,9 +58,18 @@ COCO_INSTANCE_CATEGORY_NAMES = ['__background__', 'person', 'bicycle', 'car', 'm
 'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
 ]
 
-print(len(COCO_INSTANCE_CATEGORY_NAMES))
+print('number of coco categories: ', len(COCO_INSTANCE_CATEGORY_NAMES))
 
-url = 'http://5.2.202.59:8084/axis-cgi/mjpg/video.cgi?camera=&resolution=640x480'#'http://73.13.148.126:8082/mjpg/video.mjpg'#'http://72.43.190.171:81/mjpg/video.mjpg'
+camera_url = os.environ.get('CAMERA_URL')
+mongo_host = os.environ.get('MONGO_HOST', 'mongo')
+mongo_port = os.environ.get('MONGO_PORT', 27017)
+mongo_port = int(mongo_port)
+
+print('camera url is: ', camera_url)
+print('mongo client is: ', mongo_host)
+print('mongo port is: ', mongo_port)
+
+url = camera_url #'http://5.2.202.59:8084/axis-cgi/mjpg/video.cgi?camera=&resolution=640x480'#'http://73.13.148.126:8082/mjpg/video.mjpg'#'http://72.43.190.171:81/mjpg/video.mjpg'
 
 #'http://184.153.62.129:82/mjpg/video.mjpg' #'http://189.174.160.218:6001/mjpg/video.mjpg'
 #'http://180.44.188.214:3000/mjpg/video.mjpg'#'http://67.250.253.16:8081/mjpg/video.mjpg' #'http://82.58.15.68:83/mjpg/video.mjpg' #http://122.58.10.67:83/mjpg/video.mjpg
@@ -90,8 +102,8 @@ if not os.path.exists(pictures_path):
 def initialize_mongo_client():
 
     try:
-        mongo_client =  MongoClient('mongo',27017,connect=True)
-        db = mongo_client.get_database('people_project')
+        mongo_client =  MongoClient(mongo_host, mongo_port,connect=True)
+        db = mongo_client.get_database('people_detection_project')
         fs = gridfs.GridFS(db)
 
     except Exception as ex:
@@ -129,8 +141,6 @@ def get_detections(frame, model):
     process_frame = cv2.cvtColor(process_frame, cv2.COLOR_BGR2RGB )
 
    
-
-
     # Process the image
     tens = tran(process_frame)
 

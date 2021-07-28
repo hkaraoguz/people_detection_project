@@ -3,6 +3,8 @@ services:
 
   object_detection:
     image: person_detector
+    env_file: 
+      ./object_detection/detection.env
     networks:
       person_detection_net:
         ipv4_address: 172.16.238.5

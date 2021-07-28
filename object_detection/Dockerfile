@@ -22,5 +22,5 @@ RUN pip3 install -r /app/sort/requirements.txt
 WORKDIR /app
 
 
-CMD [ "python3", "main.py" ]
+CMD [ "python3", "-u", "main.py" ]
 

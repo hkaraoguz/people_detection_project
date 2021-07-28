@@ -56,7 +56,7 @@ COCO_INSTANCE_CATEGORY_NAMES = ['__background__', 'person', 'bicycle', 'car', 'm
 
 print(len(COCO_INSTANCE_CATEGORY_NAMES))
 
-url = 'http://5.2.202.59:8084/axis-cgi/mjpg/video.cgi?camera=&resolution=640x480'
+url = 'http://91.151.111.152:8080/axis-cgi/mjpg/video.cgi?camera=&resolution=640x480'
 
 #'http://188.9.157.80:81/axis-cgi/mjpg/video.cgi?camera=&resolution=640x480'#'http://73.13.148.126:8082/mjpg/video.mjpg'#'http://72.43.190.171:81/mjpg/video.mjpg'
 

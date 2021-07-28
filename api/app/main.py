@@ -63,7 +63,7 @@ def startup_event():
 
     mongo_client =  MongoClient(settings.mongo_host,settings.mongo_port,connect=True)
 
-    db = mongo_client.get_database('people_project')
+    db = mongo_client.get_database('people_detection_project')
 
     fs = gridfs.GridFS(db)
 
@@ -98,8 +98,8 @@ async def root():
 
         time = datetime.datetime.fromtimestamp(int(item['first_timestamp'])).strftime(format="%Y-%m-%d %H:%M:%S")
         return_dict.append({'tracking_id':item['tracking_id'],'timestamp':time,'image':jpg_as_text})
-    return return_dict#{"message": "Hello World"}
-
+    return return_dict
+    
 @app.post("/filtertime/")
 async def filtertime(timefilter: TimeFilter):
     print(timefilter.lower/1000)
