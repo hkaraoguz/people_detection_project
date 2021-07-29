@@ -24,3 +24,16 @@ You can navigate to `localhost:8080` in your browser to visualize the results
 ```
 docker-compose up -f docker-compose_gpu.yaml --force-recreate
 ```
+### Only person detection and database with GPU
+```
+docker-compose up -f docker-compose_detection_gpu --force-recreate
+```
+
+### Only person detection and database w/o GPU
+```
+docker-compose up -f docker-compose_detection --force-recreate
+```
+### Pipeline for only viewing the results
+```
+docker-compose up -f docker-compose_view --force-recreate
+```

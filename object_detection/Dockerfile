@@ -1,5 +1,6 @@
 from nvidia/cuda:10.2-cudnn7-runtime-ubuntu18.04
 
+#Set timezone of the container
 ENV TZ=Europe/Stockholm
 RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
