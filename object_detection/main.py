@@ -64,10 +64,13 @@ camera_url = os.environ.get('CAMERA_URL')
 mongo_host = os.environ.get('MONGO_HOST', 'mongo')
 mongo_port = os.environ.get('MONGO_PORT', 27017)
 mongo_port = int(mongo_port)
+confidence_threshold = float(os.environ.get('CONFIDENCE_THRESHOLD',0.7))
 
 print('camera url is: ', camera_url)
 print('mongo client is: ', mongo_host)
 print('mongo port is: ', mongo_port)
+print('confidence threshold is: ', confidence_threshold)
+
 
 url = camera_url #'http://5.2.202.59:8084/axis-cgi/mjpg/video.cgi?camera=&resolution=640x480'#'http://73.13.148.126:8082/mjpg/video.mjpg'#'http://72.43.190.171:81/mjpg/video.mjpg'
 
@@ -293,7 +296,7 @@ while True:
         label_index = label_indexes[index]
         label = COCO_INSTANCE_CATEGORY_NAMES[label_index]
 
-        if score > 0.8 and label=='person':
+        if score >= confidence_threshold and label=='person':
 
             person_counter += 1
 
