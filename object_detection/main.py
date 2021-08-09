@@ -18,6 +18,9 @@ from sort import *
 
 from cv2 import cv2
 
+
+torch_device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
 class Person(object):
 
     def __init__(self, tracking_id):
@@ -25,40 +28,26 @@ class Person(object):
         self.tracking_id = tracking_id
         self.boxes = []
         self.first_timestamp = None
+        self.last_timestamp = None
+
+
+def load_model():
+    """
+    Loads Yolo5 model from pytorch hub.
+    :return: Trained Pytorch model.
+    """
+    model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+    #self.model.to(self.device)
+    return model.to(torch_device), model.names
 
 
 
-# torchvision.models.detection.fasterrcnn_mobilenet_v3_large_320_fpn(pretrained=True)
-# torchvision.models.detection.retinanet_resnet50_fpn(pretrained=True)
-#model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=True, min_size=400, max_size=600)
-
-print('cuda available: ', torch.cuda.is_available())
-
-model = torchvision.models.detection.fasterrcnn_mobilenet_v3_large_fpn(pretrained=True)
-
-
-dev = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-#dev = torch.device("cpu")
-model.to(dev)
+model,model_labels = load_model()
+print(torch_device)
 model.eval()
 
-
-
-COCO_INSTANCE_CATEGORY_NAMES = ['__background__', 'person', 'bicycle', 'car', 'motorcycle', 'airplane', 'bus',
-'train', 'truck', 'boat', 'traffic light', 'fire hydrant', 'N/A', 'stop sign',
-'parking meter', 'bench', 'bird', 'cat', 'dog', 'horse', 'sheep', 'cow',
-'elephant', 'bear', 'zebra', 'giraffe', 'N/A', 'backpack', 'umbrella', 'N/A', 'N/A',
-'handbag', 'tie', 'suitcase', 'frisbee', 'skis', 'snowboard', 'sports ball',
-'kite', 'baseball bat', 'baseball glove', 'skateboard', 'surfboard', 'tennis racket',
-'bottle', 'N/A', 'wine glass', 'cup', 'fork', 'knife', 'spoon', 'bowl',
-'banana', 'apple', 'sandwich', 'orange', 'broccoli', 'carrot', 'hot dog', 'pizza',
-'donut', 'cake', 'chair', 'couch', 'potted plant', 'bed', 'N/A', 'dining table',
-'N/A', 'N/A', 'toilet', 'N/A', 'tv', 'laptop', 'mouse', 'remote', 'keyboard', 'cell phone',
-'microwave', 'oven', 'toaster', 'sink', 'refrigerator', 'N/A', 'book',
-'clock', 'vase', 'scissors', 'teddy bear', 'hair drier', 'toothbrush'
-]
-
-print('number of coco categories: ', len(COCO_INSTANCE_CATEGORY_NAMES))
+print(model_labels)
+print('number of model categories: ', len(model_labels))
 
 camera_url = os.environ.get('CAMERA_URL')
 mongo_host = os.environ.get('MONGO_HOST', 'mongo')
@@ -95,12 +84,6 @@ person_boxes = []
 
 MAX_TIME = 10
 
-curr_path = os.path.dirname(os.path.abspath(__file__))
-
-pictures_path = os.path.join(curr_path,'pictures')
-
-if not os.path.exists(pictures_path):
-    os.mkdir(pictures_path)
 
 def initialize_mongo_client():
 
@@ -141,24 +124,24 @@ def get_detections(frame, model):
 
     process_frame = frame
 
-    process_frame = cv2.cvtColor(process_frame, cv2.COLOR_BGR2RGB )
-
-   
-    # Process the image
-    tens = tran(process_frame)
-
-    tens = tens.to(dev)
-
     try:
-        predictions = model([tens])
+        predictions = model([process_frame])
 
         #predictions = predictions.cpu()
 
         if predictions:
+            
+            #print(predictions.pred[0].cpu().numpy()[:,-2])
 
-            boxes = predictions[0]['boxes'].cpu().detach().numpy()
-            scores = predictions[0]['scores'].cpu().detach().numpy()
-            label_indexes = predictions[0]['labels'].cpu().detach().numpy()
+            scores = predictions.pred[0].cpu().numpy()[:,-2]
+            
+            label_indexes, boxes = predictions.xyxy[0][:, -1].cpu().numpy(), predictions.xyxy[0][:, :-1].cpu().numpy()
+
+            label_indexes = label_indexes.astype(int)
+
+            #boxes = predictions[0]['boxes'].cpu().detach().numpy()
+            #scores = predictions[0]['scores'].cpu().detach().numpy()
+            #label_indexes = predictions[0]['labels'].cpu().detach().numpy()
 
             return boxes, scores, label_indexes
 
@@ -169,6 +152,13 @@ def get_detections(frame, model):
         return np.zeros(1), None, None
 
 def track_people(trackers, frame):
+
+    # First 4 is the bounding box, last 1 is the id of the person
+    # trackers  [[     536.29      281.39      569.71       368.9           9]
+    # [     579.42      253.32      693.02      478.13           5]]
+
+
+
     ids = []
     #print(type(trackers))
     if 'numpy' in str(type(trackers)):
@@ -182,6 +172,7 @@ def track_people(trackers, frame):
         ids = list(set(ids))
 
     for person_id in ids:
+        
         float_id = person_id
         person_id = int(person_id)
         
@@ -199,6 +190,7 @@ def track_people(trackers, frame):
                 people_track_start_dict[person_id] = time.time()
                 person.frames.append(new_frame)
                 person.first_timestamp = time.time()
+                person.last_timestamp = person.first_timestamp
                 people_dict[person_id] = person
         else:
             person = people_dict[person_id]
@@ -206,33 +198,28 @@ def track_people(trackers, frame):
             indices = np.where(trackers[:,4] == float_id)[0]
             person_box = None
 
-            # If we get tracks for an id
             if indices.size >0:
-                # retrieve the latest person bounding box
                 person_box = trackers[indices[-1],:4].astype(int).tolist()
-                # append it to the boxes
                 person.boxes.append(person_box)
-
-                # Draw the box to the frame
                 new_frame = visualize_detections(frame.copy(),[person_box])
-
-                # Append it to the object
                 person.frames.append(new_frame)
+                person.last_timestamp = time.time()
             
             people_dict[person_id] = person
 
     del_indexes = []
-    
-    for key, value in people_track_start_dict.items():
-        if time.time() - value >= MAX_TIME:
+    for key, person in people_dict.items():
+         if time.time() - person.last_timestamp >= MAX_TIME:
                 person = people_dict[key]
 
-                if len(person.frames) >= 3:
+                if person.last_timestamp - person.first_timestamp >= 3.0:
                     print(person.first_timestamp)
                     print(person.tracking_id)
 
+                    half_len_frames = len(person.frames)/2
+
                     # convert ndarray to string
-                    imageString = person.frames[0].tobytes()
+                    imageString = person.frames[int(half_len_frames)].tobytes()
 
                     # store the image
                     imageID = grid_fs.put(imageString, encoding='utf-8')
@@ -257,8 +244,8 @@ def track_people(trackers, frame):
 
 
 #create instance of the SORT tracker
-mot_tracker = Sort(max_age=5,
-                       min_hits=2,iou_threshold=0.2)
+mot_tracker = Sort(max_age=10,
+                       min_hits=3,iou_threshold=0.3)
 
 people_track_start_dict = dict()
 
@@ -294,7 +281,7 @@ while True:
 
         score = scores[index]
         label_index = label_indexes[index]
-        label = COCO_INSTANCE_CATEGORY_NAMES[label_index]
+        label = model_labels[label_index]
 
         if score >= confidence_threshold and label=='person':
 
